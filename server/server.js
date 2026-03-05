@@ -2,11 +2,11 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
-const fs = require('fs');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
+  maxHttpBufferSize: 1e8, // 100 MB max limit for chunk payloads
   cors: {
     origin: "*",
     methods: ["GET", "POST"]
@@ -16,79 +16,66 @@ const io = new Server(server, {
 // Serve frontend files
 app.use(express.static(path.join(__dirname, '../public')));
 
-// Ensure uploads directory exists
-const UPLOADS_DIR = path.join(__dirname, 'uploads');
-if (!fs.existsSync(UPLOADS_DIR)) {
-  fs.mkdirSync(UPLOADS_DIR);
-}
+const pendingRequests = {};
+let requestCounter = 0;
 
-// Handle native file uploads from Host
-app.post('/upload', (req, res) => {
-  const filename = req.query.name;
-  if (!filename) return res.status(400).send('No filename provided');
+// Serve native video streams by Proxying HTTP Range requests to the Host's WebSocket
+app.get('/stream/:roomId/:filename', (req, res) => {
+  const roomId = req.params.roomId;
+  const room = rooms[roomId];
 
-  const safeName = path.basename(filename);
-  const filepath = path.join(UPLOADS_DIR, safeName);
-  const writeStream = fs.createWriteStream(filepath);
-
-  req.pipe(writeStream);
-
-  req.on('end', () => {
-    res.json({ success: true, url: `/stream/${encodeURIComponent(safeName)}` });
-  });
-
-  writeStream.on('error', (err) => {
-    console.error("Upload stream error:", err);
-    if (!res.headersSent) res.status(500).send('Upload Failed');
-  });
-});
-
-// Serve native video streams with HTTP Range Support
-app.get('/stream/:filename', (req, res) => {
-  const filepath = path.join(UPLOADS_DIR, req.params.filename);
-  if (!fs.existsSync(filepath)) {
-    return res.status(404).send('File not found');
+  if (!room || !room.hostedFile) {
+    return res.status(404).send('File not found or Host disconnected.');
   }
 
-  const stat = fs.statSync(filepath);
-  const fileSize = stat.size;
+  const { size, type } = room.hostedFile;
   const range = req.headers.range;
 
-  const contentType = req.params.filename.endsWith('.mkv') ? 'video/x-matroska' : 'video/mp4';
-
-  if (range) {
-    const parts = range.replace(/bytes=/, "").split("-");
-    const start = parseInt(parts[0], 10);
-    const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
-
-    if (start >= fileSize) {
-      res.status(416).send('Requested range not satisfiable\n' + start + ' >= ' + fileSize);
-      return;
-    }
-
-    const chunksize = (end - start) + 1;
-    const file = fs.createReadStream(filepath, { start, end });
+  if (!range) {
     const head = {
-      'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+      'Content-Length': size,
+      'Content-Type': type,
       'Accept-Ranges': 'bytes',
-      'Content-Length': chunksize,
-      'Content-Type': contentType,
-    };
-
-    res.writeHead(206, head);
-    file.pipe(res);
-  } else {
-    const head = {
-      'Content-Length': fileSize,
-      'Content-Type': contentType,
     };
     res.writeHead(200, head);
-    fs.createReadStream(filepath).pipe(res);
+    return res.end();
   }
+
+  const parts = range.replace(/bytes=/, "").split("-");
+  const start = parseInt(parts[0], 10);
+  const MAX_CHUNK = 3 * 1024 * 1024; // 3MB chunks for smooth, fast relaying
+
+  let end = parts[1] ? parseInt(parts[1], 10) : size - 1;
+  if (end >= size) end = size - 1;
+  if (end - start > MAX_CHUNK) end = start + MAX_CHUNK;
+
+  const chunksize = (end - start) + 1;
+
+  const head = {
+    'Content-Range': `bytes ${start}-${end}/${size}`,
+    'Accept-Ranges': 'bytes',
+    'Content-Length': chunksize,
+    'Content-Type': type,
+  };
+
+  res.writeHead(206, head);
+
+  const reqId = ++requestCounter;
+  pendingRequests[reqId] = {
+    res,
+    timeout: setTimeout(() => {
+      if (pendingRequests[reqId]) {
+        res.end(); // Fail gracefully if Host times out
+        delete pendingRequests[reqId];
+      }
+    }, 15000)
+  };
+
+  // Ask the host to send this exact byte slice
+  io.to(room.host).emit('request-chunk', { reqId, start, end });
 });
 
 // In-memory state for rooms
-// rooms[roomId] = { host: socket.id, users: { socketId: { username, isHost } }, torrentId: null, state: { type, time, playing } }
 const rooms = {};
 
 io.on('connection', (socket) => {
@@ -131,7 +118,29 @@ io.on('connection', (socket) => {
     io.to(roomId).emit('update-users', room.users);
   });
 
-  // Host sets new torrent/magnet link
+  // Host registers a file without actually uploading it
+  socket.on('host-file', (fileData) => {
+    const roomId = getRoomId(socket);
+    if (roomId && rooms[roomId].host === socket.id) {
+      rooms[roomId].hostedFile = fileData;
+      // Let everyone else in the room know the proxy URL
+      const streamUrl = `/stream/${roomId}/${encodeURIComponent(fileData.name)}`;
+      rooms[roomId].torrentId = streamUrl;
+      socket.to(roomId).emit('new-torrent', streamUrl);
+    }
+  });
+
+  // Host returns a requested binary chunk
+  socket.on('chunk-response', ({ reqId, data }) => {
+    const pending = pendingRequests[reqId];
+    if (pending) {
+      clearTimeout(pending.timeout);
+      pending.res.end(data); // Write bytes seamlessly into the peer's HTTP stream
+      delete pendingRequests[reqId];
+    }
+  });
+
+  // Backward compatibility: explicit torrent set
   socket.on('set-torrent', (torrentId) => {
     const roomId = getRoomId(socket);
     if (roomId && rooms[roomId].host === socket.id) {
@@ -196,26 +205,8 @@ io.on('connection', (socket) => {
         } else {
           // Room empty, delete the room
 
-          // Cleanup local server files if a stream URL was actively hosted
-          if (room.torrentId && room.torrentId.startsWith('http')) {
-            try {
-              const urlObj = new URL(room.torrentId);
-              const pathParts = urlObj.pathname.split('/');
-              if (pathParts[1] === 'stream' && pathParts[2]) {
-                const filenameToDel = decodeURIComponent(pathParts[2]);
-                const filepath = path.join(UPLOADS_DIR, filenameToDel);
-                if (fs.existsSync(filepath)) {
-                  fs.unlink(filepath, (err) => {
-                    if (err) console.error(`Failed to auto-delete ${filenameToDel}:`, err);
-                    else console.log(`Auto-deleted room file: ${filenameToDel} to free space.`);
-                  });
-                }
-              }
-            } catch (e) {
-              console.error("Error parsing URL for deletion cleanup", e);
-            }
-          }
-
+          // Room empty, delete the room completely.
+          // Because we don't store files natively anymore, there's no fs.unlink cleanup needed!
           delete rooms[roomId];
         }
       } else {

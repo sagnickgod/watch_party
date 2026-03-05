@@ -5,6 +5,7 @@ let webtorrentClient = null;
 let currentTorrent = null;
 let ignoreSyncEvents = false;
 let myUsername = 'Anonymous';
+let hostedFile = null; // Stores the local File object for the Host Serverless Proxy
 
 // DOM Elements
 const setupView = document.getElementById('setup-screen');
@@ -149,16 +150,28 @@ socket.on('update-users', (users) => {
 });
 
 socket.on('new-torrent', (mediaPayload) => {
-    // If string, check if it's a direct URL or magnet
+    // If string, check if it's a direct URL or proxy stream URL
     if (typeof mediaPayload === 'string') {
-        if (mediaPayload.startsWith('http://') || mediaPayload.startsWith('https://')) {
-            addSystemMessage("Host changed the video stream. Loading direct URL...");
+        if (mediaPayload.startsWith('http') || mediaPayload.startsWith('/stream/')) {
+            addSystemMessage("Host changed the video stream. Loading HD Stream...");
             loadDirectUrl(mediaPayload);
             return;
         }
     }
     addSystemMessage("Host changed the video stream. Loading torrent...");
     loadTorrent(mediaPayload);
+});
+
+// Host Serverless Proxy System: Respond to Byte Range Requests from the Server
+socket.on('request-chunk', async ({ reqId, start, end }) => {
+    if (!hostedFile) return;
+    try {
+        const slice = hostedFile.slice(start, end + 1);
+        const buffer = await slice.arrayBuffer();
+        socket.emit('chunk-response', { reqId, data: buffer });
+    } catch (err) {
+        console.error("Error reading file slice for proxy stream", err);
+    }
 });
 
 socket.on('user-joined', (data) => {
@@ -262,16 +275,12 @@ torrentFileInput.addEventListener('change', (e) => {
 
             const reader = new FileReader();
             reader.onload = (event) => {
-                // webtorrentClient.add requires a Buffer, not just a typed array, in older bundlers
                 const arrayBuffer = event.target.result;
                 const buffer = webtorrentClient.webtorrent.Buffer ?
                     webtorrentClient.webtorrent.Buffer.from(arrayBuffer) :
-                    new Uint8Array(arrayBuffer); // fallback
+                    new Uint8Array(arrayBuffer);
 
-                // For .torrent files, we use add() instead of seed()
                 webtorrentClient.add(buffer, trackerOpts, (torrent) => {
-                    // Manually push WebSockets trackers in case the torrent only has UDP/HTTP trackers
-                    // which don't work in the browser
                     trackerOpts.announce.forEach(t => {
                         if (!torrent.announce.includes(t)) {
                             torrent.announce.push(t);
@@ -288,44 +297,24 @@ torrentFileInput.addEventListener('change', (e) => {
             reader.readAsArrayBuffer(file);
 
         } else {
-            // User selected an actual video file (mp4, mkv, etc.) to host natively via server
-            addSystemMessage(`Preparing ${file.name} for Server Stream...`);
-            showBuffering("Starting local Server upload...");
+            // User selected an actual video file (mp4, mkv). Bypass upload and stream via Serverless Proxy!
+            hostedFile = file;
+            addSystemMessage(`Setting up ${file.name} for Instant Zero-Upload Streaming...`);
 
-            const filename = Date.now() + "_" + file.name.replace(/[^a-zA-Z0-9.-]/g, '');
-            const xhr = new XMLHttpRequest();
+            const fileData = {
+                name: file.name,
+                size: file.size,
+                type: file.type || (file.name.endsWith('.mkv') ? 'video/x-matroska' : 'video/mp4')
+            };
 
-            xhr.upload.addEventListener("progress", (event) => {
-                if (event.lengthComputable) {
-                    const percent = Math.round((event.loaded / event.total) * 100);
-                    showBuffering(`Uploading directly to Server: ${percent}%`);
-                }
-            });
+            socket.emit('host-file', fileData);
 
-            xhr.addEventListener("load", () => {
-                if (xhr.status === 200) {
-                    const response = JSON.parse(xhr.responseText);
-                    hideBuffering();
-                    addSystemMessage("Server upload complete. Broadcasting to network...");
+            // Host gets 0-latency instant playback directly from local memory!
+            const objectUrl = URL.createObjectURL(file);
+            addSystemMessage("Zero-Upload Streaming ready. Broadcasting stream to network...");
+            loadDirectUrl(objectUrl);
 
-                    const streamUrl = window.location.origin + response.url;
-                    socket.emit('set-torrent', streamUrl);
-                    loadDirectUrl(streamUrl);
-
-                } else {
-                    hideBuffering();
-                    addSystemMessage("Local server upload failed!");
-                    console.error("Upload Error", xhr.responseText);
-                }
-            });
-
-            xhr.addEventListener("error", () => {
-                hideBuffering();
-                addSystemMessage("Network error during local server upload");
-            });
-
-            xhr.open("POST", `/upload?name=${encodeURIComponent(filename)}`);
-            xhr.send(file);
+            // Note: We don't revokeObjectURL here because the host needs it to seek/play indefinitely
         }
     }
 });
