@@ -43,7 +43,7 @@ app.get('/stream/:roomId/:filename', (req, res) => {
 
   const parts = range.replace(/bytes=/, "").split("-");
   const start = parseInt(parts[0], 10);
-  const MAX_CHUNK = 3 * 1024 * 1024; // 3MB chunks for smooth, fast relaying
+  const MAX_CHUNK = 1 * 1024 * 1024; // 1MB chunks to drastically reduce WebSocket routing latency on mobile
 
   let end = parts[1] ? parseInt(parts[1], 10) : size - 1;
   if (end >= size) end = size - 1;

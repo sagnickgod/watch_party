@@ -135,7 +135,11 @@ socket.on('room-joined', (data) => {
     initWebTorrent();
 
     if (data.torrentId) {
-        loadTorrent(data.torrentId);
+        if (typeof data.torrentId === 'string' && (data.torrentId.startsWith('http') || data.torrentId.startsWith('/stream/'))) {
+            loadDirectUrl(data.torrentId);
+        } else {
+            loadTorrent(data.torrentId);
+        }
     }
 });
 

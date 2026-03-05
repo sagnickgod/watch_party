@@ -2,9 +2,9 @@
   --bg-color: #111111;
   --panel-bg: rgba(255, 255, 255, 0.05);
   --panel-border: rgba(255, 255, 255, 0.1);
-  --primary-color: #e50914;
-  /* Netflix red */
-  --primary-hover: #f40612;
+  --primary-color: #8A2BE2;
+  /* Deep Violet */
+  --primary-hover: #9b4dff;
   --text-main: #f5f5f1;
   --text-muted: #aaaaaa;
   --success: #2ecc71;
@@ -86,7 +86,7 @@ h3 {
 }
 
 .gradient-text {
-  background: linear-gradient(45deg, var(--primary-color), #ff5722);
+  background: linear-gradient(45deg, var(--primary-color), #df00ff);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
