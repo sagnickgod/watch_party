@@ -1,0 +1,21 @@
+{
+  "name": "watch-party",
+  "version": "1.0.0",
+  "description": "P2P WebTorrent Watch Party System",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "node server/server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2"
+  },
+  "keywords": [
+    "webtorrent",
+    "socket.io",
+    "watch-party"
+  ],
+  "author": "",
+  "license": "ISC"
+}

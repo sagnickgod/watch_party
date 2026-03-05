@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Watch Party Platform</title>
+  <!-- Google Fonts: Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Font Awesome for Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <!-- Screen 1: Setup Room -->
+  <div id="setup-screen" class="view active">
+    <div class="setup-container glass-panel">
+      <div class="logo">
+        <i class="fas fa-play-circle gradient-text"></i> SyncStream
+      </div>
+      <h2>Welcome</h2>
+      <p class="subtitle">Stream WebTorrent securely in sync with your friends.</p>
+
+      <form id="join-form">
+        <div class="input-group">
+          <label for="username">Display Name</label>
+          <input type="text" id="username" placeholder="e.g. Alice" required autocomplete="off">
+        </div>
+        <div class="input-group">
+          <label for="room-id">Room ID (optional to join)</label>
+          <input type="text" id="room-id" placeholder="Leave empty to create new room" autocomplete="off">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">
+          <i class="fas fa-sign-in-alt"></i> Join / Create Room
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Screen 2: Main Room -->
+  <div id="room-screen" class="view">
+
+    <!-- Top Nav -->
+    <nav class="top-nav">
+      <div class="nav-brand">
+        <i class="fas fa-play-circle gradient-text"></i> SyncStream
+      </div>
+      <div class="nav-room-info">
+        <span class="room-label">Room ID:</span>
+        <span id="display-room-id" class="code-font">----</span>
+        <button id="copy-link-btn" class="icon-btn" title="Copy Invite Link">
+          <i class="fas fa-link"></i>
+        </button>
+      </div>
+      <div class="nav-actions">
+        <span id="connection-status" class="status-indicator">
+          <i class="fas fa-circle text-warning"></i> Connecting...
+        </span>
+        <button id="leave-room-btn" class="btn btn-outline btn-sm">Leave</button>
+      </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="room-layout">
+      <!-- Left: Video Area -->
+      <section class="video-section glass-panel">
+
+        <!-- Torrent Selection (Host Only) -->
+        <div id="host-controls" class="host-panel hidden">
+          <h3><i class="fas fa-crown text-warning"></i> Host Controls</h3>
+          <p class="text-xs text-muted mb-2">Select a video file, paste a magnet link, or paste a direct video URL.</p>
+          <div class="torrent-input-group">
+            <input type="file" id="torrent-file-input"
+              accept="video/mp4,video/webm,video/ogg,.mkv,.torrent,application/x-bittorrent" class="file-input">
+            <label for="torrent-file-input" class="btn btn-outline btn-sm" id="file-label"
+              title="Upload File or .torrent" style="flex:0 0 auto;">
+              <i class="fas fa-file-video"></i> File
+            </label>
+            <input type="text" id="magnet-input" placeholder="magnet:?xt=..." class="magnet-input" style="flex: 1;">
+            <input type="text" id="direct-url-input" placeholder="http://.../video.mp4" class="url-input"
+              style="flex: 1;">
+            <button id="load-media-btn" class="btn btn-primary btn-sm" style="flex:0 0 auto;">Load</button>
+          </div>
+        </div>
+
+        <!-- The actual video player container -->
+        <div class="player-wrapper">
+          <div id="video-container">
+            <!-- WebTorrent will inject the video tag here -->
+            <div id="video-placeholder" class="placeholder">
+              <i class="fas fa-film fa-3x mb-2 text-muted"></i>
+              <p>Waiting for video stream...</p>
+            </div>
+          </div>
+
+          <!-- Loading/Buffering Spinner -->
+          <div id="buffering-spinner" class="spinner-overlay hidden">
+            <div class="spinner"></div>
+            <p id="buffer-text">Buffering...</p>
+          </div>
+
+          <!-- Peer Overlay (Blocks peers from clicking the native video) -->
+          <div id="peer-overlay" class="peer-cover hidden"></div>
+
+          <!-- Custom Stats Overlay (Top Right of Player) -->
+          <div class="player-stats">
+            <span class="stat-badge"><i class="fas fa-network-wired"></i> Peers: <span id="peer-count">0</span></span>
+          </div>
+
+          <!-- Custom Player Controls (Host Only) -->
+          <div id="custom-controls" class="custom-controls hidden">
+            <div class="progress-container">
+              <input type="range" id="progress-bar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+            </div>
+            <div class="controls-row">
+              <div class="controls-left">
+                <button id="play-pause-btn" class="player-icon-btn">
+                  <i class="fas fa-play"></i>
+                </button>
+                <div class="time-display">
+                  <span id="current-time">00:00</span> / <span id="duration">00:00</span>
+                </div>
+              </div>
+              <div class="controls-right" style="display: flex; align-items: center; gap: 10px;">
+                <div class="volume-container" style="display: flex; align-items: center; gap: 5px;">
+                  <button id="mute-btn" class="player-icon-btn text-muted">
+                    <i class="fas fa-volume-up"></i>
+                  </button>
+                  <input type="range" id="volume-slider" class="volume-slider" min="0" max="1" step="0.05" value="1"
+                    style="width: 80px;">
+                </div>
+                <button id="fullscreen-btn" class="player-icon-btn">
+                  <i class="fas fa-expand"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Hosting Instructions (Scrollable Content) -->
+        <div class="instructions-panel glass-panel fade-in-scroll">
+          <h3><i class="fas fa-info-circle text-primary"></i> How to Host a Watch Party</h3>
+          <div class="instruction-steps">
+            <div class="step">
+              <div class="step-number">1</div>
+              <div class="step-content">
+                <h4>Upload Your Movie</h4>
+                <p>Click the <strong>File</strong> button in the Host Controls to select any <code>.mp4</code> or
+                  <code>.mkv</code> video from your computer.</p>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-number">2</div>
+              <div class="step-content">
+                <h4>Instant Server Sync</h4>
+                <p>Wait a few seconds for the video to safely load into the local SyncStream server. The stream will
+                  broadcast at **100% original quality (1080p/4K)**.</p>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-number">3</div>
+              <div class="step-content">
+                <h4>Invite Your Friends</h4>
+                <p>Click the <i class="fas fa-link"></i> link icon at the top of the screen to copy the Room ID. Send it
+                  to your friends!</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Right: Sidebar (Users & Chat) -->
+      <aside class="sidebar-section glass-panel">
+        <div class="sidebar-tabs">
+          <button class="tab-btn active" data-tab="chat"><i class="fas fa-comments"></i> Chat</button>
+          <button class="tab-btn" data-tab="users"><i class="fas fa-users"></i> Users (<span
+              id="user-count-badge">0</span>)</button>
+        </div>
+
+        <div class="tab-content active" id="tab-chat">
+          <div id="chat-messages" class="chat-messages">
+            <!-- Messages go here -->
+            <div class="message system-msg">Welcome to the room!</div>
+          </div>
+          <form id="chat-form" class="chat-input-area">
+            <input type="text" id="chat-input" placeholder="Type a message..." autocomplete="off">
+            <button type="submit" class="icon-btn text-primary"><i class="fas fa-paper-plane"></i></button>
+          </form>
+        </div>
+
+        <div class="tab-content" id="tab-users">
+          <ul id="users-list" class="users-list">
+            <!-- User items go here -->
+          </ul>
+        </div>
+      </aside>
+    </main>
+
+  </div>
+
+  <!-- Scripts -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js"></script>
+  <script src="app.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,692 @@
+:root {
+  --bg-color: #111111;
+  --panel-bg: rgba(255, 255, 255, 0.05);
+  --panel-border: rgba(255, 255, 255, 0.1);
+  --primary-color: #e50914;
+  /* Netflix red */
+  --primary-hover: #f40612;
+  --text-main: #f5f5f1;
+  --text-muted: #aaaaaa;
+  --success: #2ecc71;
+  --warning: #f1c40f;
+
+  --font-family: 'Inter', sans-serif;
+  --border-radius: 8px;
+  --transition: all 0.2s ease-in-out;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Utilities */
+.hidden {
+  display: none !important;
+}
+
+.text-primary {
+  color: var(--primary-color);
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+.text-success {
+  color: var(--success);
+}
+
+.text-warning {
+  color: var(--warning);
+}
+
+.text-xs {
+  font-size: 0.8rem;
+}
+
+.mb-2 {
+  margin-bottom: 0.5rem;
+}
+
+.code-font {
+  font-family: monospace;
+  letter-spacing: 1px;
+}
+
+/* Glassmorphism */
+.glass-panel {
+  background: var(--panel-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--border-radius);
+}
+
+/* Typography */
+h2,
+h3 {
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.subtitle {
+  color: var(--text-muted);
+  margin-bottom: 2rem;
+}
+
+.gradient-text {
+  background: linear-gradient(45deg, var(--primary-color), #ff5722);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Buttons */
+.btn {
+  display: inline-block;
+  padding: 0.6rem 1.2rem;
+  border-radius: var(--border-radius);
+  border: none;
+  font-family: var(--font-family);
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  text-align: center;
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-hover);
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--panel-border);
+  color: var(--text-main);
+}
+
+.btn-outline:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.btn-sm {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.9rem;
+}
+
+.icon-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: var(--transition);
+  padding: 0.5rem;
+}
+
+.icon-btn:hover {
+  color: var(--text-main);
+}
+
+/* Forms */
+.input-group {
+  margin-bottom: 1.5rem;
+}
+
+label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+input[type="text"],
+.file-input {
+  width: 100%;
+  padding: 0.8rem;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--panel-border);
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--text-main);
+  font-family: var(--font-family);
+  outline: none;
+  transition: var(--transition);
+}
+
+input[type="text"]:focus {
+  border-color: var(--primary-color);
+}
+
+input[type="file"] {
+  display: none;
+}
+
+/* Screens View Management */
+.view {
+  display: none;
+  width: 100%;
+  height: 100%;
+}
+
+.view.active {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Setup Screen */
+#setup-screen {
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at center, #222 0%, #000 100%);
+}
+
+.setup-container {
+  width: 100%;
+  max-width: 400px;
+  padding: 2.5rem;
+  text-align: center;
+}
+
+.logo {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+/* Room Screen Navigation */
+.top-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: rgba(0, 0, 0, 0.5);
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.nav-brand {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.nav-room-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.room-label {
+  color: var(--text-muted);
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Main Room Layout */
+.room-layout {
+  display: flex;
+  flex: 1;
+  padding: 1rem;
+  gap: 1rem;
+}
+
+/* Left: Video Section */
+.video-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.host-panel {
+  padding: 1rem;
+  border-bottom: 1px solid var(--panel-border);
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.torrent-input-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.player-wrapper {
+  flex: 1;
+  position: relative;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+}
+
+#video-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  /* CRITICAL: Ensures original resolution aspect ratio is maintained, NO DOWN-SCALING */
+  background: #000;
+  display: block;
+}
+
+.placeholder {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  color: var(--text-muted);
+}
+
+.player-stats {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 20;
+}
+
+.stat-badge {
+  background: rgba(0, 0, 0, 0.6);
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  border: 1px solid var(--panel-border);
+  color: var(--text-muted);
+}
+
+/* Buffering Overlay */
+.spinner-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid var(--panel-border);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Custom Controls Layer */
+.custom-controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.9));
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  z-index: 30;
+  transition: opacity 0.3s;
+}
+
+.player-wrapper:hover .custom-controls {
+  opacity: 1;
+}
+
+.progress-container {
+  width: 100%;
+}
+
+.progress-bar {
+  width: 100%;
+  cursor: pointer;
+  accent-color: var(--primary-color);
+  height: 4px;
+}
+
+.controls-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.controls-left,
+.controls-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.player-icon-btn {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+.player-icon-btn:hover {
+  transform: scale(1.1);
+  color: var(--primary-color);
+}
+
+.time-display {
+  font-size: 0.9rem;
+  color: #ddd;
+  font-family: monospace;
+}
+
+/* Peer Overlay to Block Clicks on Video */
+.peer-cover {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+}
+
+/* Right: Sidebar */
+.sidebar-section {
+  width: 350px;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 1rem;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: var(--transition);
+  font-family: var(--font-family);
+  font-weight: 500;
+}
+
+.tab-btn.active {
+  color: var(--text-main);
+  border-bottom-color: var(--primary-color);
+}
+
+.tab-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.tab-content {
+  display: none;
+  flex: 1;
+  overflow: hidden;
+}
+
+.tab-content.active {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Chat */
+.chat-messages {
+  flex: 1;
+  padding: 1rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.message {
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.message .author {
+  font-weight: 600;
+  color: var(--primary-color);
+  margin-right: 0.5rem;
+}
+
+.message .host-badge {
+  background: var(--warning);
+  color: #000;
+  font-size: 0.6rem;
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+  margin-left: 0.3rem;
+  vertical-align: top;
+}
+
+.system-msg {
+  color: var(--text-muted);
+  font-style: italic;
+  text-align: center;
+}
+
+.chat-input-area {
+  display: flex;
+  padding: 1rem;
+  border-top: 1px solid var(--panel-border);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.chat-input-area input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-main);
+  outline: none;
+  font-family: var(--font-family);
+}
+
+/* Users List */
+.users-list {
+  list-style: none;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.user-item {
+  display: flex;
+  align-items: center;
+  padding: 0.8rem;
+  border-radius: var(--border-radius);
+  margin-bottom: 0.5rem;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.user-item i {
+  margin-right: 0.8rem;
+  color: var(--text-muted);
+}
+
+.user-item .you-badge {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .room-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar-section {
+    width: 100%;
+    height: 400px;
+  }
+
+  .video-section {
+    min-height: 40vh;
+  }
+}
+
+/* ========================================================================= */
+/*                              INSTRUCTIONS PANEL & SCROLL ANIMATIONS       */
+/* ========================================================================= */
+
+.instructions-panel {
+  margin: 20px;
+  padding: 25px;
+  border-left: 4px solid var(--primary-color);
+  margin-bottom: 40px;
+}
+
+.instructions-panel h3 {
+  margin-bottom: 20px;
+  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.instruction-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.step {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 15px;
+  border-radius: var(--radius-md);
+  transition: transform 0.2s;
+}
+
+.step:hover {
+  transform: translateX(5px);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.step-number {
+  background: var(--primary-color);
+  color: #fff;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(229, 9, 20, 0.4);
+}
+
+.step-content h4 {
+  margin: 0 0 5px 0;
+  font-size: 1rem;
+  color: var(--text-light);
+}
+
+.step-content p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* Base class for scroll animations */
+.fade-in-scroll {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+/* Triggered by JS Intersection Observer */
+.fade-in-scroll.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Override fixed layouts to allow vertical scrolling down to instructions */
+body {
+  overflow-y: auto !important;
+  /* ALLOW SCROLLING */
+  overflow-x: hidden;
+}
+
+.room-layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 20px;
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 20px;
+  height: auto;
+  min-height: calc(100vh - 80px);
+  /* Fill screen but allow expanding */
+  overflow: visible;
+  /* Don't hide bottom content */
+}
+
+/* Allow the left side to naturally stretch */
+.video-section {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Make sure the player doesn't collapse */
+.player-wrapper {
+  min-height: 500px;
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+  background: black;
+}
+
+/* Fix sidebar styling so it sticks nicely while scrolling */
+.sidebar-section {
+  position: sticky;
+  top: 20px;
+  height: calc(100vh - 40px);
+}
