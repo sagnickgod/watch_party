@@ -106,12 +106,17 @@ leaveRoomBtn.addEventListener('click', () => {
 });
 
 copyLinkBtn.addEventListener('click', () => {
-    const url = window.location.href;
+    const url = window.location.origin + '?room=' + currentRoom;
     navigator.clipboard.writeText(url);
 
-    const icon = copyLinkBtn.querySelector('i');
-    icon.className = 'fas fa-check text-success';
-    setTimeout(() => { icon.className = 'fas fa-link'; }, 2000);
+    const originalHTML = copyLinkBtn.innerHTML;
+    copyLinkBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+    copyLinkBtn.style.backgroundColor = 'var(--success)';
+
+    setTimeout(() => {
+        copyLinkBtn.innerHTML = originalHTML;
+        copyLinkBtn.style.backgroundColor = '';
+    }, 2000);
 });
 
 // ----------------------------------------------------
