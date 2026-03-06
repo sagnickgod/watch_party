@@ -379,7 +379,6 @@ function loadDirectUrl(url) {
 
     let video = document.querySelector('video');
     if (!video) {
-        // If no video exists (because WebTorrent hasn't injected one), create it
         video = document.createElement('video');
         video.style.width = '100%';
         video.style.height = '100%';
@@ -390,9 +389,10 @@ function loadDirectUrl(url) {
 
     video.removeAttribute('id');
     video.autoplay = false;
-    video.preload = 'auto'; // Force metadata fetch for large MKVs
+    // CRITICAL FIX: Do NOT use preload="auto" for proxy streams, it forces browsers (esp mobile) 
+    // to aggressively spam the Node mapping with concurrent Range queries, causing lag loops.
+    video.preload = 'metadata';
 
-    // Setup Native Error Logging
     video.onerror = () => {
         const err = video.error;
         if (err) {
@@ -401,10 +401,12 @@ function loadDirectUrl(url) {
         }
     };
 
-    video.src = url;
-    video.load(); // Explicitly force the HTTP Range request immediately
+    // Cache-bust the URL so peers don't get stuck on stale browser chunks
+    const safeUrl = url.includes('?') ? `${url}&t=${Date.now()}` : `${url}?t=${Date.now()}`;
+    video.src = safeUrl;
+    video.load();
 
-    addSystemMessage(`Streaming: ${url}`);
+    addSystemMessage(`Streaming: HD Video Source`);
 
     if (isHost) {
         // Automatically attempt to play once sufficient data is loaded

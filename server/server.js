@@ -56,6 +56,9 @@ app.get('/stream/:roomId/:filename', (req, res) => {
     'Accept-Ranges': 'bytes',
     'Content-Length': chunksize,
     'Content-Type': type,
+    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0',
   };
 
   res.writeHead(206, head);
@@ -65,7 +68,7 @@ app.get('/stream/:roomId/:filename', (req, res) => {
     res,
     timeout: setTimeout(() => {
       if (pendingRequests[reqId]) {
-        res.end(); // Fail gracefully if Host times out
+        res.end(); // Fail gracefully if Host times out so browser can retry
         delete pendingRequests[reqId];
       }
     }, 15000)
