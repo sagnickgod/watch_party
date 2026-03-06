@@ -402,7 +402,12 @@ function loadDirectUrl(url) {
     };
 
     // Cache-bust the URL so peers don't get stuck on stale browser chunks
-    const safeUrl = url.includes('?') ? `${url}&t=${Date.now()}` : `${url}?t=${Date.now()}`;
+    // However, do NOT apply cache-busting to native blob: URLs which breaks local streaming
+    let safeUrl = url;
+    if (!url.startsWith('blob:')) {
+        safeUrl = url.includes('?') ? `${url}&t=${Date.now()}` : `${url}?t=${Date.now()}`;
+    }
+
     video.src = safeUrl;
     video.load();
 
